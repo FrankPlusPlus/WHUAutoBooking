@@ -202,7 +202,7 @@ def dxvip_url(cookies: dict):
 
 
 
-# 生成验证码图片描述信息, 被 combine_ultimate_dx_image 调用
+# 生成验证码图片描述信息, 被 combine_ultimate_dx_image, info 调用
 def generate_dx_image_description(data, tp1_url: str):
     """生成验证码图片描述信息"""
     # 从请求tp1_url的响应体中获取关键字段verifyType、childVerifyType、imgName、color、logo等
@@ -283,7 +283,7 @@ def generate_dx_image_description(data, tp1_url: str):
         direction_desc = directions.get(childVerifyType, '')
         description = f"请点击{img_ch}{direction_desc}字母"
     print("验证码图片描述信息:", description)
-    return description
+    return description, verifyType, childVerifyType
 
 
 
@@ -296,7 +296,7 @@ def combine_ultimate_dx_image(data, tp1_url: str, image):
             tp1_url: str - 验证码图片URL
             image: PIL.Image - 原始验证码图片
     """
-    description = generate_dx_image_description(data, tp1_url)
+    description, verifyType, childVerifyType = generate_dx_image_description(data, tp1_url)
     if description:
         from PIL import Image, ImageDraw, ImageFont
         
@@ -383,7 +383,7 @@ def combine_ultimate_dx_image(data, tp1_url: str, image):
 
 
 # 用于获取获取验证码信息***************************************
-def click_reserve_dxapi_imageInfo(cookies: dict):
+def click_reserve_dxapi_imageInfo(cookies: dict, no: int, proc: bool):
     """点击预约, 获取验证码图片,并展示"""
     url = dxvip_url(cookies)
     response = requests.get(url, cookies=cookies, verify=False)
@@ -406,8 +406,24 @@ def click_reserve_dxapi_imageInfo(cookies: dict):
             image = Image.open(BytesIO(image_response.content))
             # 直接调用组合函数处理加入文字描述
             ultimateImage = combine_ultimate_dx_image(data, tp1_url, image)
-            ultimateImage.show()
-            ultimateImage.save('proc_image/test.png', format='PNG')
+            # ultimateImage.show()
+
+            # 获取图片的类别
+            description, verifyType, childVerifyType = generate_dx_image_description(data, tp1_url)
+            path_1 = f'proc_image/test{no}.jpg'
+            path_21 = f'raw_image/basic/test{no}.jpg'
+            path_22 = f'raw_image/letter/test{no}.jpg'
+            # 如果verifyType = 1，2，3，4保存到不同的路径
+            if verifyType in ['0', '1']:
+                if proc:
+                    ultimateImage.save(path_1, format='JPEG')
+                else:
+                    image.save(path_21, format='JPEG')
+            elif verifyType in ['2', '3']:
+                if proc:
+                    ultimateImage.save(path_1, format='JPEG')
+                else:
+                    image.save(path_22, format='JPEG')
         else:
             print(f"获取验证码图片内容失败，状态码: {image_response.status_code}")
 
@@ -428,5 +444,9 @@ else:
 
 click_reserve_whu_proc(cookies, areaId=11, areaNo=2, date='2025-10-17')
 
-click_reserve_dxapi_imageInfo(cookies)
+
+for no in range(1, 500):
+    click_reserve_dxapi_imageInfo(cookies, no, False)
+    # 睡眠1秒
+    time.sleep(1)
 
