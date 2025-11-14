@@ -3,3 +3,7 @@
 *test*
 # 忽略所有的log文件
 *.log
+# 忽略所有图片和log
+*.png
+*.jpg
+*.webp
